@@ -1,0 +1,7 @@
+rarc,description,active
+MA130,Your claim contains incomplete and/or invalid information,1
+N130,Missing/incomplete/invalid diagnosis code(s),1
+N362,Missing/incomplete/invalid procedure code(s),1
+M54,Missing/incomplete/invalid place of service,1
+
+

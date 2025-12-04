@@ -1,0 +1,9 @@
+group_code,reason_code,description,active
+CO,45,Charge exceeds fee schedule maximum,1
+CO,97,Benefit maximum reached,1
+PR,1,Deductible,1
+PR,2,Coinsurance,1
+PI,204,Not covered by this payer,1
+OA,23,Impact of prior payer's adjudication,1
+
+
