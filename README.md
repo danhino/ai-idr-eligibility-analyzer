@@ -78,6 +78,7 @@ The application will be available at `http://localhost:8501`
 
 - **Multi-format Support**: Handles both raw ANSI 835 EDI files and PDF ERA/EOB documents
 - **OCR Fallback**: Automatically uses OCR for scanned PDFs when direct text extraction fails
+- **Glossary Exclusion**: Automatically detects and strips glossary/definition sections from ERA PDFs so that code descriptions are not double-counted as claim data
 - **IDR Eligibility**: Matches CPT, CAS, and RARC codes against local database
 - **Timeline Calculation**: Computes Open Negotiation and IDR Initiation windows based on payment dates
 - **Comprehensive Reports**: Generate CSV, JSON, and human-readable audit reports
