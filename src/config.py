@@ -6,16 +6,17 @@ from pathlib import Path
 from typing import Optional
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
-
 # Base paths
 BASE_DIR = Path(__file__).parent.parent
+ENV_PATH = BASE_DIR / ".env"
 DATA_DIR = BASE_DIR / "data"
 SEED_DIR = DATA_DIR / "seed"
 SAMPLES_DIR = BASE_DIR / "samples"
 LOGS_DIR = BASE_DIR / "logs"
 DB_PATH = BASE_DIR / "era_idr.db"
+
+# Load environment variables
+load_dotenv(ENV_PATH)
 
 # Ensure directories exist
 LOGS_DIR.mkdir(exist_ok=True)
@@ -25,6 +26,9 @@ SAMPLES_DIR.mkdir(exist_ok=True)
 
 # Environment variables
 OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
+ANTHROPIC_API_KEY: Optional[str] = os.getenv("ANTHROPIC_API_KEY")
+OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3.1")
 OCR_LANGUAGE: str = os.getenv("OCR_LANGUAGE", "eng")
 TZ: str = os.getenv("TZ", "America/New_York")
 APP_PORT: int = int(os.getenv("APP_PORT", "8501"))
@@ -32,10 +36,26 @@ APP_PORT: int = int(os.getenv("APP_PORT", "8501"))
 # Database settings
 DB_ECHO: bool = os.getenv("DB_ECHO", "false").lower() == "true"
 
+# AI provider: "openai", "anthropic", or "ollama"
+AI_PROVIDER: str = os.getenv("AI_PROVIDER", "openai")
+
 # AI settings
-AI_ENABLED: bool = OPENAI_API_KEY is not None and len(OPENAI_API_KEY) > 0
 AI_MODEL: str = os.getenv("AI_MODEL", "gpt-4o-mini")
 AI_TIMEOUT: int = int(os.getenv("AI_TIMEOUT", "30"))
+
+
+def _check_ai_enabled() -> bool:
+    provider = globals().get("AI_PROVIDER", "openai")
+    if provider == "anthropic":
+        key = globals().get("ANTHROPIC_API_KEY")
+        return key is not None and len(key) > 0
+    if provider == "ollama":
+        return True
+    key = globals().get("OPENAI_API_KEY")
+    return key is not None and len(key) > 0
+
+
+AI_ENABLED: bool = _check_ai_enabled()
 
 # ERA parsing settings
 DEFAULT_SEGMENT_DELIMITER: str = "~"
@@ -45,4 +65,18 @@ DEFAULT_SUBELEMENT_DELIMITER: str = ":"
 # IDR timeline settings
 OPEN_NEGOTIATION_DAYS: int = 30
 IDR_INITIATION_DAYS: int = 4
+
+
+def reload_env():
+    """Reload environment variables from .env file and update module globals."""
+    load_dotenv(ENV_PATH, override=True)
+    g = globals()
+    g["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+    g["ANTHROPIC_API_KEY"] = os.getenv("ANTHROPIC_API_KEY")
+    g["OLLAMA_BASE_URL"] = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    g["OLLAMA_MODEL"] = os.getenv("OLLAMA_MODEL", "llama3.1")
+    g["AI_PROVIDER"] = os.getenv("AI_PROVIDER", "openai")
+    g["AI_MODEL"] = os.getenv("AI_MODEL", "gpt-4o-mini")
+    g["AI_TIMEOUT"] = int(os.getenv("AI_TIMEOUT", "30"))
+    g["AI_ENABLED"] = _check_ai_enabled()
 

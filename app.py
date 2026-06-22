@@ -7,16 +7,18 @@ from typing import List
 import traceback
 import tempfile
 
-from src.config import AI_ENABLED, SAMPLES_DIR
+import src.config as app_config
+from src.config import SAMPLES_DIR
 from src.db import init_db, load_seed_data
 from src.pdf_extract import extract_text_from_pdf
 from src.era_parser import ERAParser
 from src.rules import EligibilityEvaluator
 from src.models import ERAFile, EligibilityResult
 from src.ui.forms import render_code_management_form
+from src.ui.settings import render_settings_page
 from src.ui.views import render_results_table, render_download_buttons
 from src.utils.logging import logger
-from src.ai_enhance import is_available as ai_available
+from src.ai_enhance import is_available as ai_available, get_provider_name
 
 # Page config
 st.set_page_config(
@@ -70,11 +72,12 @@ def process_files(uploaded_files: List, use_ai: bool = False, redact: bool = Fal
     total_files = len(uploaded_files)
     
     # Show initial AI status
+    provider_name = get_provider_name()
     if use_ai:
         if ai_available():
-            ai_status_text.info("🤖 AI Enhancement: **Enabled** - OpenAI API is available")
+            ai_status_text.info(f"AI Enhancement: **Enabled** - {provider_name} is available")
         else:
-            ai_status_text.warning("🤖 AI Enhancement: **Requested but unavailable** - OpenAI API key not configured")
+            ai_status_text.warning(f"AI Enhancement: **Requested but unavailable** - {provider_name} not configured")
             use_ai = False  # Disable if not available
     else:
         ai_status_text.empty()
@@ -125,7 +128,7 @@ def process_files(uploaded_files: List, use_ai: bool = False, redact: bool = Fal
             if use_ai and ai_available():
                 ai_usage_stats["files_processed_with_ai"] += 1
                 status_text.text(f"📄 Processing {uploaded_file.name} ({idx + 1}/{total_files})... 🤖 Using AI enhancement...")
-                ai_status_text.info(f"🤖 **AI Processing**: Enhancing {uploaded_file.name} with OpenAI...")
+                ai_status_text.info(f"**AI Processing**: Enhancing {uploaded_file.name} with {provider_name}...")
                 
                 try:
                     from src.ai_enhance import summarize_segments, validate_line_items
@@ -241,22 +244,23 @@ with st.sidebar:
     # Options
     st.divider()
     st.subheader("AI Enhancement")
-    
-    if AI_ENABLED:
-        st.success("✅ OpenAI API configured and available")
+
+    provider_label = get_provider_name()
+    if ai_available():
+        st.success(f"Provider: **{provider_label}** — configured")
     else:
-        st.warning("⚠️ OpenAI API key not configured")
-        st.caption("Set OPENAI_API_KEY in .env to enable AI features")
-    
+        st.warning(f"Provider: **{provider_label}** — not configured")
+        st.caption("Go to Settings to configure API keys")
+
     use_ai = st.checkbox(
-        "Use OpenAI Enhancement",
+        f"Use {provider_label} Enhancement",
         value=False,
-        disabled=not AI_ENABLED,
-        help="Enable AI-powered parsing and validation (requires API key)" if AI_ENABLED else "OpenAI API key not configured"
+        disabled=not ai_available(),
+        help=f"Enable AI-powered parsing via {provider_label}" if ai_available() else "Configure API key in Settings first",
     )
-    
-    if use_ai and AI_ENABLED:
-        st.info("🤖 AI enhancement will be applied during processing")
+
+    if use_ai and ai_available():
+        st.info(f"AI enhancement ({provider_label}) will be applied during processing")
     
     redact_phi = st.checkbox(
         "Redact Identifiers in Audit Output",
@@ -273,7 +277,7 @@ with st.sidebar:
     st.header("Navigation")
     page = st.radio(
         "Select Page",
-        ["Analysis", "Code Management"],
+        ["Analysis", "Code Management", "Settings"],
         label_visibility="collapsed"
     )
 
@@ -311,6 +315,9 @@ if page == "Analysis":
 
 elif page == "Code Management":
     render_code_management_form()
+
+elif page == "Settings":
+    render_settings_page()
 
 # Footer
 st.divider()

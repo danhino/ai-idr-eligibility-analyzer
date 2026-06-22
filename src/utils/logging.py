@@ -19,7 +19,7 @@ logger.add(
     level="DEBUG",
     format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} | {message}",
     backtrace=True,
-    diagnose=True
+    diagnose=False
 )
 
 # Add console handler with less verbose format
