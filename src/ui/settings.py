@@ -80,12 +80,22 @@ def render_settings_page():
     if current_provider not in providers:
         current_provider = "openai"
 
+    def _on_provider_change():
+        new_provider = st.session_state["_ai_provider_radio"]
+        env["AI_PROVIDER"] = new_provider
+        env["AI_MODEL"] = PROVIDER_DEFAULTS.get(new_provider, "gpt-4o-mini")
+        _write_env(env)
+        from src.config import reload_env
+        reload_env()
+
     provider = st.radio(
         "Active AI Provider",
         providers,
         index=providers.index(current_provider),
         format_func=lambda p: {"openai": "OpenAI", "anthropic": "Claude (Anthropic)", "ollama": "Ollama (Local)"}[p],
         horizontal=True,
+        key="_ai_provider_radio",
+        on_change=_on_provider_change,
     )
 
     st.divider()
@@ -209,7 +219,7 @@ def _render_anthropic_tab(env: OrderedDict):
 
 
 def _render_ollama_tab(env: OrderedDict):
-    st.info("Ollama runs locally and does not require an API key.")
+    st.info("Ollama runs locally and does not require an API key. Select the model in the Model Selection section below.")
 
     with st.form("ollama_form"):
         base_url = st.text_input(
@@ -218,29 +228,11 @@ def _render_ollama_tab(env: OrderedDict):
             help="URL where your Ollama instance is running",
         )
 
-        ollama_models = PROVIDER_MODELS["ollama"]
-        ollama_ids = [m[0] for m in ollama_models]
-        ollama_descs = {m[0]: m[1] for m in ollama_models}
-        current_ollama = env.get("OLLAMA_MODEL", "llama3.1")
-        if current_ollama not in ollama_ids:
-            ollama_ids.append(current_ollama)
-            ollama_descs[current_ollama] = "Custom model"
-        idx = ollama_ids.index(current_ollama) if current_ollama in ollama_ids else 0
-
-        model = st.selectbox(
-            "Ollama Model",
-            options=ollama_ids,
-            index=idx,
-            format_func=lambda m: f"{m}  —  {ollama_descs.get(m, '')}",
-            help="Select a model or set OLLAMA_MODEL in .env for unlisted models",
-        )
-
-        if st.form_submit_button("Update Ollama Settings"):
+        if st.form_submit_button("Update Ollama URL"):
             env["OLLAMA_BASE_URL"] = base_url
-            env["OLLAMA_MODEL"] = model
             _write_env(env)
             from src.config import reload_env
             reload_env()
-            logger.info(f"Ollama settings updated: url={base_url}, model={model}")
-            st.success("Ollama settings saved.")
+            logger.info(f"Ollama URL updated: {base_url}")
+            st.success("Ollama URL saved.")
             st.rerun()

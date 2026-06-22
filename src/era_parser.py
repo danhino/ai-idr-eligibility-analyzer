@@ -88,14 +88,31 @@ class ERAParser:
             # Header/trailer segments - extract metadata if needed
             pass
     
+    def _is_summary_line(self, text: str) -> bool:
+        """Check if text is a TOTALS/summary row that should not be parsed as claim data."""
+        t = text.strip().upper()
+        if t.startswith("TOTALS:") or t.startswith("TOTALS "):
+            return True
+        if re.match(r'^#\s*OF\b', t) or re.match(r'^\d+\s+\d+[\d,.]+\s+\d', t):
+            return True
+        if re.search(r'\bCLAIMS\s+AMT\b', t):
+            return True
+        if re.search(r'\bBILLED\s+ALLOWED\s+', t, re.IGNORECASE) and "TOTALS" not in t:
+            if re.search(r'\bRC-AMT\b', t):
+                return True
+        return False
+
     def _parse_pdf_segment(self, seg_dict: dict):
         """Parse a pseudo-segment from PDF text."""
         seg_id = seg_dict.get("segment_id", "UNK")
         elements = seg_dict.get("elements", [])
-        
+
         # Combine elements into text for pattern matching
         text = " ".join(elements)
-        
+
+        if self._is_summary_line(text):
+            return
+
         # More aggressive parsing - check for codes in any line
         # First check for claim-level info
         if seg_id == "CLP" or "claim" in text.lower() or "icn" in text.lower():
@@ -150,6 +167,12 @@ class ERAParser:
     
     def _parse_clp_from_text(self, text: str):
         """Parse CLP information from PDF text using patterns."""
+        # Skip summary/totals lines that happen to contain "claim"
+        if re.search(r'\bCLAIM\s+TOTALS\b', text, re.IGNORECASE):
+            return
+        if self._is_summary_line(text):
+            return
+
         # Look for claim ID patterns (ICN)
         claim_id_match = re.search(r'(?:icn|claim\s*(?:id|#|number)?)[:\s]*([A-Z0-9-]{10,})', text, re.IGNORECASE)
         if not claim_id_match:

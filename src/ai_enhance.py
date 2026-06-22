@@ -30,7 +30,6 @@ def _get_config():
         "openai_key": config.OPENAI_API_KEY,
         "anthropic_key": config.ANTHROPIC_API_KEY,
         "ollama_url": config.OLLAMA_BASE_URL,
-        "ollama_model": config.OLLAMA_MODEL,
     }
 
 
@@ -148,7 +147,7 @@ def _chat_ollama(system: str, user: str, cfg: dict, max_tokens: Optional[int] = 
         api_key="ollama",
     )
     kwargs: Dict[str, Any] = {
-        "model": cfg.get("ollama_model", cfg["model"]),
+        "model": cfg["model"],
         "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": user},
