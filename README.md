@@ -167,23 +167,23 @@ The application supports three AI providers for optional enhancement of ERA pars
   | `claude-opus-4-8` | Most capable Claude — highest accuracy, slower |
   | `claude-haiku-4-5-20251001` | Fastest Claude — lowest cost, good for simple tasks |
 
-### Ollama (Local)
+### Ollama (Local) — Recommended for HIPAA Compliance
 
-- **API Key**: Not required. Ollama runs locally on your machine.
-- **Default Model**: `llama3.1`
+- **API Key**: Not required. Ollama runs entirely on the local machine.
+- **Default Model**: `llama3.2:latest`
 - **Default URL**: `http://localhost:11434`
-- **Environment Variables**: `OLLAMA_BASE_URL`, `OLLAMA_MODEL`
-- **Note**: Since Ollama runs locally, no PHI leaves the machine. This is the most HIPAA-friendly option.
-- **Available Models**:
-  | Model | Description |
-  |-------|-------------|
-  | `llama3.1` | Meta Llama 3.1 — strong general-purpose open model |
-  | `llama3.2` | Meta Llama 3.2 — newer, improved reasoning |
-  | `mistral` | Mistral 7B — fast and efficient for structured tasks |
-  | `codellama` | Code Llama — optimized for code and structured data |
-  | `gemma2` | Google Gemma 2 — compact and capable |
-  | `phi3` | Microsoft Phi-3 — small model, strong reasoning |
-  | `deepseek-r1` | DeepSeek-R1 — strong reasoning and analysis |
+- **Environment Variables**: `OLLAMA_BASE_URL`
+- **Available Models** (must be pulled locally via `ollama pull <model>`):
+  | Model | Size | Description |
+  |-------|------|-------------|
+  | `llama3.2:latest` | 2.0 GB | Meta Llama 3.2 — general-purpose |
+  | `phi3:mini` | 2.2 GB | Microsoft Phi-3 Mini — strong reasoning |
+  | `qwen2.5:3b` | 1.9 GB | Qwen 2.5 3B — fast and compact |
+  | `deepseek-coder:6.7b` | 3.8 GB | DeepSeek Coder 6.7B — code and structured data |
+
+**Why Ollama is the recommended provider for HIPAA-covered environments:**
+
+Ollama runs all AI inference locally on the workstation. No data — redacted or otherwise — ever leaves the machine. This eliminates the need for a Business Associate Agreement (BAA), removes any risk of third-party data retention, and ensures full compliance with the HIPAA Security Rule's transmission security requirements by avoiding transmission entirely. The PHI redaction layer still runs as defense in depth, but it is not a required safeguard when using Ollama since no network boundary is crossed.
 
 ### Switching Providers
 
@@ -209,9 +209,21 @@ This application processes ERA (ANSI 835) files that contain Protected Health In
 
 This application is designed to run locally on a secured, authenticated laptop within the client's office. Operating system-level authentication serves as the access control mechanism. PHI data is processed and stored locally and does not traverse a network under normal operation.
 
+### AI Provider Comparison for HIPAA
+
+| Concern | OpenAI / Anthropic | Ollama (Local) |
+|---------|-------------------|----------------|
+| PHI leaves the machine | Yes — data sent over the internet | **No** — all inference runs locally |
+| BAA required | Yes | **No** — no third party involved |
+| PHI redaction | Critical safeguard | Runs as defense in depth, not strictly required |
+| API key exposure risk | Keys could be leaked | No API keys used |
+| Data retention by provider | Provider may log prompts | **No external retention** |
+
+**Ollama is the recommended AI provider for HIPAA-covered environments.** With Ollama, the entire data pipeline — parsing, AI enhancement, eligibility evaluation, and reporting — runs on the local workstation. No PHI crosses a network boundary at any point.
+
 ### PHI Redaction Before AI Calls
 
-When AI enhancement is enabled (OpenAI, Anthropic, or Ollama), **all PHI is automatically redacted before any data is sent to the AI provider**. The redaction layer (`src/utils/redaction.py`) strips the following from ERA segments before transmission:
+When AI enhancement is enabled, **all PHI is automatically redacted before any data reaches the AI provider**, regardless of which provider is selected. The redaction layer (`src/utils/redaction.py`) strips the following from ERA segments:
 
 - **Patient names** (NM1 segments) — replaced with initials only
 - **Patient/member IDs** — masked, keeping only the last 4 characters
@@ -219,7 +231,7 @@ When AI enhancement is enabled (OpenAI, Anthropic, or Ollama), **all PHI is auto
 - **Subscriber/reference IDs** (REF segments) — masked
 - **Free-text descriptions** — names and long identifiers are redacted via pattern matching
 
-This ensures that only billing codes (CPT, CAS, RARC), amounts, and structural segment data reach the external API. No individually identifiable patient information is transmitted.
+This ensures that only billing codes (CPT, CAS, RARC), amounts, and structural segment data are used for AI analysis. For cloud providers (OpenAI, Anthropic), this is a critical HIPAA safeguard. For Ollama, it provides defense in depth since data never leaves the machine regardless.
 
 ### Data at Rest
 
@@ -229,10 +241,11 @@ This ensures that only billing codes (CPT, CAS, RARC), amounts, and structural s
 
 ### Recommendations for Operators
 
-1. **Verify sample files**: Ensure the ERA files in `samples/` do not contain real patient data before pushing to any remote repository.
-2. **Enable redaction for exports**: When exporting reports that will leave the secured workstation, enable the "Redact Identifiers" option.
-3. **Provider BAA**: If using OpenAI or Anthropic in a production HIPAA-covered environment, confirm that your provider agreement includes a Business Associate Agreement (BAA). Even with redaction in place, a BAA provides an additional legal safeguard. Using Ollama avoids this concern entirely since data stays local.
-4. **Disk encryption**: Ensure the workstation has full-disk encryption enabled (e.g., BitLocker on Windows).
+1. **Use Ollama for HIPAA compliance**: Select Ollama as the AI provider in Settings. This keeps all data local and eliminates the need for a BAA or third-party risk assessment.
+2. **Verify sample files**: Ensure the ERA files in `samples/` do not contain real patient data before pushing to any remote repository.
+3. **Enable redaction for exports**: When exporting reports that will leave the secured workstation, enable the "Redact Identifiers" option.
+4. **Cloud provider BAA**: If using OpenAI or Anthropic instead of Ollama, confirm that your provider agreement includes a Business Associate Agreement (BAA). Even with redaction in place, a BAA provides an additional legal safeguard.
+5. **Disk encryption**: Ensure the workstation has full-disk encryption enabled (e.g., BitLocker on Windows).
 
 ## License
 
