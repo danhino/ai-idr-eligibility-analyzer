@@ -23,20 +23,17 @@ PROVIDER_MODELS = {
         ("claude-haiku-4-5-20251001", "Fastest Claude — lowest cost, good for simple tasks"),
     ],
     "ollama": [
-        ("llama3.1", "Meta Llama 3.1 — strong general-purpose open model"),
-        ("llama3.2", "Meta Llama 3.2 — newer, improved reasoning"),
-        ("mistral", "Mistral 7B — fast and efficient for structured tasks"),
-        ("codellama", "Code Llama — optimized for code and structured data"),
-        ("gemma2", "Google Gemma 2 — compact and capable"),
-        ("phi3", "Microsoft Phi-3 — small model, strong reasoning"),
-        ("deepseek-r1", "DeepSeek-R1 — strong reasoning and analysis"),
+        ("llama3.2:latest", "Meta Llama 3.2 — 2.0 GB, general-purpose"),
+        ("phi3:mini", "Microsoft Phi-3 Mini — 2.2 GB, strong reasoning"),
+        ("qwen2.5:3b", "Qwen 2.5 3B — 1.9 GB, fast and compact"),
+        ("deepseek-coder:6.7b", "DeepSeek Coder 6.7B — 3.8 GB, code and structured data"),
     ],
 }
 
 PROVIDER_DEFAULTS = {
     "openai": "gpt-4o-mini",
     "anthropic": "claude-sonnet-4-6",
-    "ollama": "llama3.1",
+    "ollama": "llama3.2:latest",
 }
 
 
@@ -100,17 +97,13 @@ def render_settings_page():
 
     st.divider()
 
-    # --- Provider-specific settings ---
-    tab_openai, tab_anthropic, tab_ollama = st.tabs(["OpenAI", "Claude (Anthropic)", "Ollama"])
-
-    with tab_openai:
-        _render_openai_tab(env)
-
-    with tab_anthropic:
-        _render_anthropic_tab(env)
-
-    with tab_ollama:
-        _render_ollama_tab(env)
+    # --- Provider-specific settings (inline, no tabs) ---
+    if provider == "openai":
+        _render_openai_settings(env)
+    elif provider == "anthropic":
+        _render_anthropic_settings(env)
+    else:
+        _render_ollama_settings(env)
 
     st.divider()
 
@@ -164,12 +157,12 @@ def render_settings_page():
         st.rerun()
 
 
-def _render_openai_tab(env: OrderedDict):
+def _render_openai_settings(env: OrderedDict):
     existing = env.get("OPENAI_API_KEY", "")
     if existing:
         st.success(f"API key configured: {_mask_key(existing)}")
     else:
-        st.warning("No API key configured")
+        st.warning("No OpenAI API key configured")
 
     with st.form("openai_form"):
         new_key = st.text_input(
@@ -178,25 +171,24 @@ def _render_openai_tab(env: OrderedDict):
             placeholder="sk-...",
             help="Leave blank to keep the existing key",
         )
-        if st.form_submit_button("Update OpenAI Key"):
+        if st.form_submit_button("Update API Key"):
             if new_key:
                 env["OPENAI_API_KEY"] = new_key
                 _write_env(env)
                 from src.config import reload_env
                 reload_env()
-                logger.info("OpenAI API key updated")
                 st.success("OpenAI API key saved.")
                 st.rerun()
             else:
                 st.info("No change — key field was empty.")
 
 
-def _render_anthropic_tab(env: OrderedDict):
+def _render_anthropic_settings(env: OrderedDict):
     existing = env.get("ANTHROPIC_API_KEY", "")
     if existing:
         st.success(f"API key configured: {_mask_key(existing)}")
     else:
-        st.warning("No API key configured")
+        st.warning("No Anthropic API key configured")
 
     with st.form("anthropic_form"):
         new_key = st.text_input(
@@ -205,21 +197,20 @@ def _render_anthropic_tab(env: OrderedDict):
             placeholder="sk-ant-...",
             help="Leave blank to keep the existing key",
         )
-        if st.form_submit_button("Update Anthropic Key"):
+        if st.form_submit_button("Update API Key"):
             if new_key:
                 env["ANTHROPIC_API_KEY"] = new_key
                 _write_env(env)
                 from src.config import reload_env
                 reload_env()
-                logger.info("Anthropic API key updated")
                 st.success("Anthropic API key saved.")
                 st.rerun()
             else:
                 st.info("No change — key field was empty.")
 
 
-def _render_ollama_tab(env: OrderedDict):
-    st.info("Ollama runs locally and does not require an API key. Select the model in the Model Selection section below.")
+def _render_ollama_settings(env: OrderedDict):
+    st.info("Ollama runs locally — no API key required.")
 
     with st.form("ollama_form"):
         base_url = st.text_input(
@@ -227,12 +218,10 @@ def _render_ollama_tab(env: OrderedDict):
             value=env.get("OLLAMA_BASE_URL", "http://localhost:11434"),
             help="URL where your Ollama instance is running",
         )
-
-        if st.form_submit_button("Update Ollama URL"):
+        if st.form_submit_button("Update URL"):
             env["OLLAMA_BASE_URL"] = base_url
             _write_env(env)
             from src.config import reload_env
             reload_env()
-            logger.info(f"Ollama URL updated: {base_url}")
             st.success("Ollama URL saved.")
             st.rerun()
