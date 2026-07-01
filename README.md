@@ -2,6 +2,15 @@
 
 A production-ready application that ingests ERA (ANSI 835) files and ERA-as-PDFs, extracts CPT remark codes and CAS (Claim Adjustment) codes, matches them against a local code database, and reports which claims/lines are eligible for IDR.
 
+## Screenshots
+
+| | |
+|---|---|
+| ![Processing Results](screenshots/Processing%20Results.png) | ![Code Management](screenshots/Code%20Management.png) |
+| **Processing Results** — Interactive results table showing parsed claims/lines with IDR eligibility status and filters. | **Code Management** — Add, edit, and delete CPT, CAS, and remark codes in the local eligibility database. |
+| ![AI Model Selection](screenshots/AI%20Model%20Selection.png) | ![Report Generation](screenshots/Report%20Generation.png) |
+| **AI Model Selection** — Settings page for choosing an AI provider (OpenAI, Claude/Anthropic, or Ollama) and configuring API keys. | **Report Generation** — Export options for CSV, JSON, and human-readable audit reports (HTML/PDF). |
+
 ## Features
 
 - **Multi-format Support**: Accepts raw 835 text files (.txt, .835, .edi) and PDF ERA/EOB documents
